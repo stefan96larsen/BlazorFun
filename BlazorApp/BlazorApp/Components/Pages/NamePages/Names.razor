@@ -1,0 +1,139 @@
+﻿@page "/names"
+@using BlazorApp.DTO
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.IdentityModel.Tokens
+
+@inject NavigationManager Navigation
+
+@implements IAsyncDisposable
+
+@rendermode InteractiveServer
+
+<h3>Create Name</h3>
+
+<input type="text" class="form-control mb-2" @bind="_newName.SurName" placeholder="Surname" />
+<input type="text" class="form-control mb-2" @bind="_newName.LastName" placeholder="Lastname" />
+<button type="button" class="btn btn-primary mb-3" @onclick="PutName">Create</button>
+
+
+<h3>Names</h3>
+@if (_allNames.Count > 0)
+{
+    <button type="button" class="btn btn-danger mb-2" @onclick="DeleteNames" disabled="@(!_selectedNames.Any())">Delete Selected</button>
+    <ul class="list-unstyled">
+        @foreach (var name in _allNames)
+        {
+            <li>
+                <input type="checkbox" 
+                       @onchange="e => ToggleSelection(name, e.Value)"
+                       checked="@_selectedNames.Contains(name)"/>
+                @name.SurName @name.LastName
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No names available. Please create a new name.</p>
+}
+
+@code {
+    private HubConnection? _hubConnection;
+    private List<Name> _allNames = [];
+    private Name _newName = new();
+    private readonly HashSet<Name> _selectedNames = [];
+    
+    private Response? _operationStatus;
+    
+    [Inject] 
+    protected ToastService ToastService { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/frontendHub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        await _hubConnection.StartAsync();
+        await GetNames();
+    }
+
+    private async Task PutName()
+    {
+        _operationStatus = await _hubConnection.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.PutName), _newName);
+        
+        if (_operationStatus.Ok)
+        {
+            _allNames.Add(_newName);
+            StateHasChanged();
+        }
+        
+        ShowAppropriateToast(_operationStatus);
+        
+        // Clear form.
+        _newName = new Name();
+    }
+
+    private async Task GetNames()
+    {
+        var response = await _hubConnection.InvokeAsync<DTO.Names>(nameof(SignalR.FrontendHub.FrontendHub.GetNames));
+        _allNames = !response.NamesList.IsNullOrEmpty() ? response.NamesList.ToList() : [];
+        _selectedNames.Clear();
+    }
+
+    private async Task DeleteNames()
+    {
+        var namesToDelete = _selectedNames.ToList().Select(n => n.Id);
+        _operationStatus = await _hubConnection.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.DeleteNamesById), namesToDelete);
+        ShowAppropriateToast(_operationStatus);
+
+        _allNames = _allNames.Except(_selectedNames).ToList();
+        // Update UI.
+        StateHasChanged();
+    }
+    
+    private void ToggleSelection(Name name, object? isChecked)
+    {
+        if (isChecked is true)
+            _selectedNames.Add(name);
+        else
+            _selectedNames.Remove(name);
+    }
+
+    private void ShowAppropriateToast(Response? response)
+    {
+        if (response is not null && response.Ok)
+        {
+            ToastService.Notify(new ToastMessage
+            {
+                Type = ToastType.Success,
+                Message = "Operation successful",
+                AutoHide = true
+            });
+        }
+        
+        if (response?.Errors != null && response.Errors.Any())
+        {
+            ToastService.Notify(new ToastMessage
+            {
+                Type = ToastType.Warning,
+                Title = "Operation failed",
+                Message = response.Errors[0].Reasons,
+                AutoHide = false,
+                HelpText = $"{DateTime.Now}"
+            });
+        }
+
+        _operationStatus = null;
+        StateHasChanged();
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
