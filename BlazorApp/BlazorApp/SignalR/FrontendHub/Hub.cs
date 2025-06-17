@@ -6,27 +6,27 @@ namespace BlazorApp.SignalR.FrontendHub;
 
 public class FrontendHub(INameService nameService) : Hub
 {
-    public async Task<Response> PutName(Name name)
+    public async Task<Response> PutName(Name putNameRequest)
     {
-        var response = nameService.PutName(name);
+        var response = nameService.PutName(putNameRequest);
         return await Task.FromResult(response);
     }
 
-    public async Task<Names> GetNames()
+    public async Task<Names> GetAllNames()
     {
-        var response = nameService.GetNames();
+        var response = nameService.GetAllNames();
         return await Task.FromResult(response);
     }
 
-    public async Task<Response> DeleteName(Name name)
+    public async Task<Response> DeleteName(Name deleteNameRequest)
     {
-        var response = nameService.DeleteName(name);
+        var response = nameService.DeleteName(deleteNameRequest);
         return await Task.FromResult(response);
     }
 
-    public async Task<Response> DeleteNamesById(long[] ids)
+    public async Task<Response> DeleteNamesById(List<Name> deleteNamesByIdRequest)
     {
-        var response = nameService.DeleteNamesById(ids);
+        var response = nameService.DeleteNamesById(deleteNamesByIdRequest);
         return await Task.FromResult(response);
     }
 }

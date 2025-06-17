@@ -65,7 +65,7 @@ else
         
         if (_operationStatus.Ok)
         {
-            _allNames.Add(_newName);
+            await GetNames();
             StateHasChanged();
         }
         
@@ -77,15 +77,15 @@ else
 
     private async Task GetNames()
     {
-        var response = await _hubConnection.InvokeAsync<DTO.Names>(nameof(SignalR.FrontendHub.FrontendHub.GetNames));
+        var response = await _hubConnection.InvokeAsync<DTO.Names>(nameof(SignalR.FrontendHub.FrontendHub.GetAllNames));
         _allNames = !response.NamesList.IsNullOrEmpty() ? response.NamesList.ToList() : [];
         _selectedNames.Clear();
     }
 
     private async Task DeleteNames()
     {
-        var namesToDelete = _selectedNames.ToList().Select(n => n.Id);
-        _operationStatus = await _hubConnection.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.DeleteNamesById), namesToDelete);
+        var deleteNamesRequest = _selectedNames.ToList();
+        _operationStatus = await _hubConnection.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.DeleteNamesById), deleteNamesRequest);
         ShowAppropriateToast(_operationStatus);
 
         _allNames = _allNames.Except(_selectedNames).ToList();
@@ -131,9 +131,17 @@ else
     
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
+        try
         {
-            await _hubConnection.DisposeAsync();
+            if (_hubConnection is not null)
+            {
+                await _hubConnection.DisposeAsync();
+            }
+        }
+        // Swallow the exception if the connection is already disconnected.
+        catch (JSDisconnectedException)
+        {
+            
         }
     }
 }

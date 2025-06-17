@@ -2,9 +2,23 @@ using BlazorApp.Components;
 using BlazorApp.Services;
 using Microsoft.EntityFrameworkCore;
 using BlazorApp.Data;
-using OpenTelemetry.Trace;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, _, configuration) =>
+{
+    var env = context.HostingEnvironment;
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Environment", env.EnvironmentName);
+
+    if (!env.IsDevelopment())
+    {
+        // TODO: Write to elastic search when in production.
+    }
+});
 
 builder.Services.AddDbContextFactory<BlazorAppContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("BlazorAppContext") ??
@@ -17,6 +31,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddControllers();
 
+// SignalR service.
 builder.Services.AddSignalR(options =>
 {
     // Set max size to 1 GB for a single SignalR request.
@@ -24,25 +39,14 @@ builder.Services.AddSignalR(options =>
     options.EnableDetailedErrors = true;
 });
 
+
+// Custom services.
 builder.Services.AddScoped<INameService, NameService>();
 builder.Services.AddScoped<IDbLock, DbLock>();
+
+// Library for Blazor components.
 builder.Services.AddBlazorBootstrap();
 
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing =>
-    {
-        if (builder.Environment.IsDevelopment())
-        {
-            tracing.SetSampler(new AlwaysOnSampler());
-        }
-
-        tracing.AddAspNetCoreInstrumentation();
-        tracing.AddSource("Microsoft.AspNetCore.SignalR.Server");
-        tracing.AddConsoleExporter();
-    });
-
-builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddOtlpExporter());
-    
 var app = builder.Build();
 
 using var scope = app.Services.CreateScope();

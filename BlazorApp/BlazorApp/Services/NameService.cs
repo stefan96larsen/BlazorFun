@@ -19,9 +19,9 @@ public class NameService : INameService
         _dbLock = dbLock;
     }
 
-    public Response PutName(Name name)
+    public Response PutName(Name putNameRequest)
     {
-        if (name.SurName.IsNullOrEmpty() || name.LastName.IsNullOrEmpty())
+        if (putNameRequest.SurName.IsNullOrEmpty() || putNameRequest.LastName.IsNullOrEmpty())
         {
             return new Response
             {
@@ -30,23 +30,41 @@ public class NameService : INameService
                     new Error
                     {
                         Type = Error.ErrorType.FailedToPut,
-                        Reasons = "SurName and LastName cannot be empty."
+                        Reasons =
+                            $"{nameof(putNameRequest.SurName)} and {nameof(putNameRequest.LastName)} cannot be empty."
                     }
                 ]
             };
         }
-        
+
         using var context = _contextFactory.CreateDbContext();
+        var entityName = putNameRequest.ToEntity();
+
         lock (_dbLock)
         {
             try
             {
-                context.Name.Add(name.ToEntity());
+                context.Name.Add(entityName);
                 context.SaveChanges();
-            } 
-            catch (Exception e)
+            }
+            catch (DbUpdateException)
             {
-                _logger.LogWarning("{Message}", e.Message);
+                _logger.LogWarning("Name has to be unique: {@Name}", entityName);
+                return new Response
+                {
+                    Errors =
+                    [
+                        new Error
+                        {
+                            Type = Error.ErrorType.FailedToPut,
+                            Reasons = $"Name already exists: {entityName.SurName} {entityName.LastName}"
+                        }
+                    ]
+                };
+            }
+            catch (Exception)
+            {
+                _logger.LogWarning("Failed to put name: {@Name}", entityName);
 
                 return new Response
                 {
@@ -61,6 +79,7 @@ public class NameService : INameService
                 };
             }
 
+            _logger.LogInformation("Successfully put new name: {@Name}", entityName);
             return new Response
             {
                 Ok = true
@@ -68,7 +87,7 @@ public class NameService : INameService
         }
     }
 
-    public Names GetNames()
+    public Names GetAllNames()
     {
         using var context = _contextFactory.CreateDbContext();
 
@@ -80,49 +99,14 @@ public class NameService : INameService
         };
     }
 
-    public Response DeleteName(Name name)
+    public Response DeleteName(Name deleteNameRequest)
     {
-        try
+        using var context = _contextFactory.CreateDbContext();
+        var idToDelete = context.Name.Find(deleteNameRequest.ToEntity());
+
+        if (idToDelete is null)
         {
-            using var context = _contextFactory.CreateDbContext();
-
-            var idToDelete = context.Name.Where(n => n.SurName == name.SurName && n.LastName == name.LastName)
-                .Select(n => n.Id)
-                .SingleOrDefault();
-
-            if (idToDelete == 0)
-            {
-                return new Response
-                {
-                    Errors =
-                    [
-                        new Error
-                        {
-                            Type = Error.ErrorType.FailedToDelete,
-                            Reasons = $"Unable to find the name: {name.SurName} {name.LastName}"
-                        }
-                    ]
-                };
-            }
-
-            lock (_dbLock)
-            {
-                context.Name.Remove(new DbModel.Name
-                {
-                    Id = idToDelete,
-                    SurName = name.SurName,
-                    LastName = name.LastName
-                });
-                context.SaveChanges();
-            }
-
-            return new Response
-            {
-                Ok = true
-            };
-        }
-        catch (Exception e)
-        {
+            _logger.LogWarning("Unable to find the name: {@Name}", deleteNameRequest);
             return new Response
             {
                 Errors =
@@ -130,49 +114,32 @@ public class NameService : INameService
                     new Error
                     {
                         Type = Error.ErrorType.FailedToDelete,
-                        Reasons = e.Message
+                        Reasons = $"Unable to find the name: {deleteNameRequest.SurName} {deleteNameRequest.LastName}"
                     }
                 ]
             };
         }
+
+        var entityName = deleteNameRequest.ToEntity();
+
+        lock (_dbLock)
+        {
+            context.Name.Remove(entityName);
+            context.SaveChanges();
+        }
+
+        _logger.LogInformation("Successfully deleted name: {@Name}", entityName);
+        return new Response
+        {
+            Ok = true
+        };
     }
 
-    public Response DeleteNamesById(long[] ids)
+    public Response DeleteNamesById(List<Name> deleteNamesByIdRequest)
     {
-        try
+        if (deleteNamesByIdRequest.IsNullOrEmpty())
         {
-            using var context = _contextFactory.CreateDbContext();
-
-            var namesToDelete = context.Name.Where(n => ids.Contains(n.Id)).ToList();
-
-            if (namesToDelete.Count == 0)
-            {
-                return new Response
-                {
-                    Errors =
-                    [
-                        new Error
-                        {
-                            Type = Error.ErrorType.FailedToDelete,
-                            Reasons = "No names found for the provided IDs."
-                        }
-                    ]
-                };
-            }
-
-            lock (_dbLock)
-            {
-                context.Name.RemoveRange(namesToDelete);
-                context.SaveChanges();
-            }
-
-            return new Response
-            {
-                Ok = true
-            };
-        }
-        catch (Exception e)
-        {
+            _logger.LogWarning($"{nameof(DeleteNamesById)} is null or empty");
             return new Response
             {
                 Errors =
@@ -180,10 +147,27 @@ public class NameService : INameService
                     new Error
                     {
                         Type = Error.ErrorType.FailedToDelete,
-                        Reasons = e.Message
+                        Reasons = "List of names to delete cannot be empty."
                     }
                 ]
             };
         }
+        
+        using var context = _contextFactory.CreateDbContext();
+        var idsToDelete = deleteNamesByIdRequest.Select(n => n.Id).ToList();
+        var namesToDelete = context.Name.Where(n => idsToDelete.Contains(n.Id)).ToList();
+
+        lock (_dbLock)
+        {
+            context.Name.RemoveRange(namesToDelete);
+            context.SaveChanges();
+        }
+        
+        _logger.LogInformation("Successfully deleted names: {@DeletedNames}", namesToDelete);
+        
+        return new Response
+        {
+            Ok = true
+        };
     }
 }

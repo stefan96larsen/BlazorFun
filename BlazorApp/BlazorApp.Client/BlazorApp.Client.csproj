@@ -13,6 +13,8 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.16" />
         <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="8.0.16" />
         <PackageReference Include="Microsoft.NET.Sdk.WebAssembly.Pack" Version="8.0.16" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
     </ItemGroup>
 
 </Project>

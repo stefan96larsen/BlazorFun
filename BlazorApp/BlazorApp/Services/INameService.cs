@@ -7,22 +7,22 @@ public interface INameService
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="putNameRequest"></param>
     /// <returns></returns>
-    Response PutName(Name name);
+    Response PutName(Name putNameRequest);
     
     /// <summary>
     /// 
     /// </summary>
     /// <returns></returns>
-    Names GetNames();
+    Names GetAllNames();
     
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="deleteNameRequest"></param>
     /// <returns></returns>
-    Response DeleteName(Name name);
+    Response DeleteName(Name deleteNameRequest);
 
-    Response DeleteNamesById(long[] ids);
+    Response DeleteNamesById(List<Name> deleteNamesByIdRequest);
 }
