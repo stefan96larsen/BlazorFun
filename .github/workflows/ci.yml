@@ -8,22 +8,25 @@ on:
 
 jobs:
   build-and-test:
+    
     runs-on: ubuntu-latest
     strategy:
       matrix:
         # Allows you to try different .NET versions for version coverage.
-        dotnet-version: [8.0] 
+        dotnet-version: [8.0]
+        
     steps:
+      - uses: actions/checkout@v4
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
 
-      - name: Restore dependencies
+      - name: Install dependencies
         run: dotnet restore
+        
+      - name: Build
+        run: dotnet build --no-restore
 
       - name: Run tests with coverage
         # collect coverage to opencover format and enforce threshold only on master
