@@ -46,7 +46,7 @@ jobs:
           reportgenerator \
             -reports:TestResults/**/coverage.cobertura.xml \
             -targetdir:CoverageReport \
-            -reporttypes:HtmlInline;Covertura;TextSummary;MarkdownSummary \
+            -reporttypes:HtmlInline;Cobertura;TextSummary;MarkdownSummary \
           
       - name: Coverage summary
         run: cat CoverageReport/summary.txt
