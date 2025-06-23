@@ -17,8 +17,11 @@ public abstract class AppTest : IDisposable
     
     protected AppTest()
     {
-        
         const string testDbFolder = "../../../BlazorApp.Server.Tests/TestDb";
+        
+        if (!Directory.Exists(testDbFolder))
+            Directory.CreateDirectory(testDbFolder);
+        
         DbFilePath = Path.Combine(testDbFolder, "sqlite.db");
             
         Factory = new CustomWebApplicationFactory(DbFilePath);
