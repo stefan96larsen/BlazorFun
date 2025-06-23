@@ -25,36 +25,38 @@ jobs:
       - name: Install dependencies
         run: dotnet restore
         
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+        
       - name: Build
         run: dotnet build --no-restore
-
+    
       - name: Run tests with coverage
         # collect coverage to opencover format and enforce threshold only on master
         run: |
-          DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet test \
+          dotnet test \
             --no-build \
-            /p:CollectCoverage=true \
-            /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=./coverage/ \
-            ${{ github.ref == 'refs/heads/master' && '/p:Threshold=80 /p:ThresholdType=line' || '' }}
-          
-      - name: Upload coverage report artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-opencover
-          path: coverage/*.opencover.xml
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger trx
 
       - name: Generate HTML report
         if: always()
         run: |
           reportgenerator \
-            -reports:coverage/*.opencover.xml \
-            -targetdir:coverage-report \
-            -reporttypes:HtmlInline_AzurePipelines
+            -reports:TestResults/**/coverage.cobertura.xml \
+            -targetdir:CoverageReport \
+            -reporttypes:HtmlInline;Covertura;TextSummary;MarkdownSummary \
           
-      - name: Upload HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-html
-          path: coverage-report
+      - name: Coverage summary
+        run: cat CoverageReport/summary.txt
+          
+      - name: Fail if coverage is below threshold
+        run: |
+          threshold=80
+          actual=$(grep -Po 'Line coverage.*\K[\d.]+' CoverageReport/summary.txt)
+          echo "Actual line coverage: $actual%"
+          if (( $(echo "$actual < $threshold" | bc -l) )); then
+            echo "❌ Coverage $actual% is below threshold $threshold%"
+            exit 1
+          fi
