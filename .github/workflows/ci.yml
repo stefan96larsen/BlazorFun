@@ -49,7 +49,7 @@ jobs:
       - name: Fail if coverage is below threshold
         run: |
           threshold=80
-          actual=$(grep -Po 'Line coverage.*\K[\d.]+' CoverageReport/Summary.txt)
+          actual=$(grep -Po 'Line coverage:\s*\K[\d.]+(?=%)' CoverageReport/Summary.txt)
           echo "Actual line coverage: $actual%"
           if (( $(echo "$actual < $threshold" | bc -l) )); then
             echo "❌ Coverage $actual% is below threshold $threshold%"
