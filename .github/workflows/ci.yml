@@ -26,13 +26,12 @@ jobs:
         run: dotnet restore
         
       - name: Install ReportGenerator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.4.8
         
       - name: Build
         run: dotnet build --no-restore
     
       - name: Run tests with coverage
-        # collect coverage to opencover format and enforce threshold only on master
         run: |
           dotnet test \
             --no-build \
@@ -43,10 +42,7 @@ jobs:
       - name: Generate HTML report
         if: always()
         run: |
-          reportgenerator \
-            -reports:TestResults/**/coverage.cobertura.xml \
-            -targetdir:CoverageReport \
-            -reporttypes:HtmlInline;Cobertura;TextSummary;MarkdownSummary \
+          reportgenerator -reports:cobertura.xml -targetdir:CoverageReport -reporttypes:Html;Cobertura
           
       - name: Coverage summary
         run: cat CoverageReport/summary.txt
