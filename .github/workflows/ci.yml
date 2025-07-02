@@ -44,7 +44,7 @@ jobs:
           reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:'TextSummary'
           
       - name: Coverage summary
-        run: cat CoverageReport/summary.txt
+        run: cat ./CoverageReport/Summary.txt
           
       - name: Fail if coverage is below threshold
         run: |
