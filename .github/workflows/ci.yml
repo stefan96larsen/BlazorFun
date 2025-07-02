@@ -41,7 +41,7 @@ jobs:
       - name: Generate HTML report
         if: always()
         run: |
-          reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:'Cobertura'
+          reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:'TextSummary'
           
       - name: Coverage summary
         run: cat CoverageReport/summary.txt
