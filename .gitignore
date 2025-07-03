@@ -3,3 +3,5 @@ obj/
 .idea/
 BlazorApp/BlazorApp/Data/sqlite.db*
 BlazorApp.sln.DotSettings.user
+TestResults/*
+CoverageReport/*

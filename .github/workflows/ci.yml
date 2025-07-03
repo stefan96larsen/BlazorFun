@@ -41,11 +41,11 @@ jobs:
       - name: Generate HTML report
         if: always()
         run: |
-          reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:'TextSummary'
+          reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:'Cobertura';'TextSummary'
           
       - name: Coverage summary
         run: cat ./CoverageReport/Summary.txt
-          
+        
       - name: Fail if coverage is below threshold
         run: |
           threshold=80
@@ -53,5 +53,8 @@ jobs:
           echo "Actual line coverage: $actual%"
           if (( $(echo "$actual < $threshold" | bc -l) )); then
             echo "❌ Coverage $actual% is below threshold $threshold%"
+            exit 1
+          else
+            echo "✅ Coverage $actual% meets or exceeds threshold $threshold%"
             exit 1
           fi

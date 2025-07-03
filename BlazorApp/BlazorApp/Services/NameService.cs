@@ -62,22 +62,6 @@ public class NameService : INameService
                     ]
                 };
             }
-            catch (Exception)
-            {
-                _logger.LogWarning("Failed to put name: {@Name}", entityName);
-
-                return new Response
-                {
-                    Errors =
-                    [
-                        new Error
-                        {
-                            Type = Error.ErrorType.FailedToPut,
-                            Reasons = $"Unknown error in method {nameof(PutName)}"
-                        }
-                    ]
-                };
-            }
 
             _logger.LogInformation("Successfully put new name: {@Name}", entityName);
             return new Response
@@ -102,9 +86,9 @@ public class NameService : INameService
     public Response DeleteName(Name deleteNameRequest)
     {
         using var context = _contextFactory.CreateDbContext();
-        var idToDelete = context.Name.Find(deleteNameRequest.ToEntity());
-
-        if (idToDelete is null)
+        var entityToDelete = context.Name.FirstOrDefault(n => n.Id == deleteNameRequest.Id);
+        
+        if (entityToDelete is null)
         {
             _logger.LogWarning("Unable to find the name: {@Name}", deleteNameRequest);
             return new Response
@@ -119,16 +103,14 @@ public class NameService : INameService
                 ]
             };
         }
-
-        var entityName = deleteNameRequest.ToEntity();
-
+        
         lock (_dbLock)
         {
-            context.Name.Remove(entityName);
+            context.Name.Remove(entityToDelete);
             context.SaveChanges();
         }
 
-        _logger.LogInformation("Successfully deleted name: {@Name}", entityName);
+        _logger.LogInformation("Successfully deleted name: {@Name}", entityToDelete);
         return new Response
         {
             Ok = true
