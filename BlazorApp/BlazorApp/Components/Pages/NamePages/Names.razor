@@ -44,9 +44,8 @@ else
     private readonly HashSet<Name> _selectedNames = [];
     
     private Response? _operationStatus;
-    
-    [Inject] 
-    protected ToastService ToastService { get; set; }
+
+    [Inject] protected ToastService ToastService { get; set; } = null!;
     
     protected override async Task OnInitializedAsync()
     {
@@ -61,7 +60,7 @@ else
 
     private async Task PutName()
     {
-        _operationStatus = await _hubConnection.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.PutName), _newName);
+        _operationStatus = await _hubConnection!.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.PutName), _newName);
         
         if (_operationStatus.Ok)
         {
@@ -77,7 +76,7 @@ else
 
     private async Task GetNames()
     {
-        var response = await _hubConnection.InvokeAsync<DTO.Names>(nameof(SignalR.FrontendHub.FrontendHub.GetAllNames));
+        var response = await _hubConnection!.InvokeAsync<DTO.Names>(nameof(SignalR.FrontendHub.FrontendHub.GetAllNames));
         _allNames = !response.NamesList.IsNullOrEmpty() ? response.NamesList.ToList() : [];
         _selectedNames.Clear();
     }
@@ -85,7 +84,7 @@ else
     private async Task DeleteNames()
     {
         var deleteNamesRequest = _selectedNames.ToList();
-        _operationStatus = await _hubConnection.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.DeleteNamesById), deleteNamesRequest);
+        _operationStatus = await _hubConnection!.InvokeAsync<Response>(nameof(SignalR.FrontendHub.FrontendHub.DeleteNamesById), deleteNamesRequest);
         ShowAppropriateToast(_operationStatus);
 
         _allNames = _allNames.Except(_selectedNames).ToList();

@@ -2,17 +2,8 @@
 
 public class Error
 {
-    public Error()
-    {
-    }
-    
     public enum ErrorType
     {
-        /// <summary>
-        ///     Error.
-        /// </summary>
-        Error,
-        
         /// <summary>
         ///     Failed to put data to the database.
         /// </summary>
@@ -24,16 +15,10 @@ public class Error
         FailedToDelete
     }
     
-    public Error(ErrorType errorType)
-    {
-        Type = errorType;
-    }
-    
     public ErrorType Type { get; set; }
     
     public string Reasons { get; set; } = string.Empty;
     
-    public string Field { get; set; } = string.Empty;
 }
 
 public class Response
